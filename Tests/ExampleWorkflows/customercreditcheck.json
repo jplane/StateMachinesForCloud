@@ -1,0 +1,88 @@
+﻿{
+  "id": "customercreditcheck",
+  "version": "1.0",
+  "name": "Customer Credit Check Workflow",
+  "description": "Perform Customer Credit Check",
+  "functions": [
+    {
+      "name": "creditCheckFunction",
+      "operation": "http://myapis.org/creditcheckapi.json#doCreditCheck"
+    },
+    {
+      "name": "sendRejectionEmailFunction",
+      "operation": "http://myapis.org/creditcheckapi.json#rejectionEmail"
+    }
+  ],
+  "events": [
+    {
+      "name": "CreditCheckCompletedEvent",
+      "type": "creditCheckCompleteType",
+      "source": "creditCheckSource",
+      "correlation": [
+        {
+          "contextAttributeName": "customerId"
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "CheckCredit",
+      "start": true,
+      "enterAction": {
+        "type": "InvokeFunction",
+        "functionName": "creditCheckFunction",
+        "arguments": {
+          "customer": "${ .customer }"
+        }
+      },
+      "transitions": [
+        {
+          "nextState": "EvaluateDecision",
+          "eventGroups": [
+            {
+              "events": [ "CreditCheckCompletedEvent" ],
+              "resultHandler": "${ .creditCheck += ($rhs | .Data) }"
+            }
+          ]
+        },
+        {
+          "nextState": "CreditCheckTimedOut",
+          "timeout": "PT15M"
+        }
+      ]
+    },
+    {
+      "name": "EvaluateDecision",
+      "transitions": [
+        {
+          "nextState": "MarkApproved",
+          "condition": "${ .creditCheck | .decision == \"Approved\" }"
+        },
+        {
+          "nextState": "MarkRejected",
+          "condition": "${ .creditCheck | .decision == \"Denied\" }"
+        }
+      ]
+    },
+    {
+      "name": "CreditCheckTimedOut"
+    },
+    {
+      "name": "MarkApproved",
+      "enterAction": {
+        "type": "InjectData",
+        "expression": "${ \"approved\" }"
+      },
+      "enterResultHandler": "${ .status += $rhs }"
+    },
+    {
+      "name": "MarkRejected",
+      "enterAction": {
+        "type": "InjectData",
+        "expression": "${ \"denied\" }"
+      },
+      "enterResultHandler": "${ .status += $rhs }"
+    }
+  ]
+}

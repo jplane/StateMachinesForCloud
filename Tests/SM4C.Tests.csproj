@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="ExampleWorkflows\customercreditcheck.json" />
+    <None Remove="ExampleWorkflows\errorhandling.json" />
+    <None Remove="ExampleWorkflows\greeting.json" />
+    <None Remove="ExampleWorkflows\helloworld.json" />
+    <None Remove="ExampleWorkflows\sendcloudeventonprovision.json" />
+    <None Remove="ExampleWorkflows\travelbookingsaga.json" />
+    <None Remove="ExampleWorkflows\vetappointment.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="ExampleWorkflows\customercreditcheck.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ExampleWorkflows\errorhandling.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ExampleWorkflows\greeting.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ExampleWorkflows\helloworld.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ExampleWorkflows\sendcloudeventonprovision.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ExampleWorkflows\travelbookingsaga.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ExampleWorkflows\vetappointment.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.1.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Model\SM4C.Model.csproj" />
+    <ProjectReference Include="..\Engine\SM4C.Engine.csproj" />
+    <ProjectReference Include="..\Integration\SM4C.Integration.csproj" />
+    <ProjectReference Include="..\Engine.Lite\SM4C.Engine.Lite.csproj" />
+  </ItemGroup>
+
+</Project>

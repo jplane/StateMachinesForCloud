@@ -1,0 +1,49 @@
+﻿{
+  "id": "sendcloudeventonprovision",
+  "version": "1.0",
+  "name": "Send CloudEvent on provision completion",
+  "events": [
+    {
+      "name": "provisioningCompleteEvent",
+      "type": "provisionCompleteType",
+      "kind": "produced"
+    }
+  ],
+  "functions": [
+    {
+      "name": "provisionOrderFunction",
+      "operation": "http://myapis.org/provisioning.json#doProvision"
+    }
+  ],
+  "states": [
+    {
+      "name": "ProvisionOrdersState",
+      "start": true,
+      "enterAction": {
+        "type": "ForEach",
+        "input": "${ .orders }",
+        "action": {
+          "type": "InvokeFunction",
+          "functionName": "provisionOrderFunction",
+          "arguments": {
+            "order": "${ . }"
+          }
+        }
+      },
+      "enterResultHandler": "${ .provisionedOrders += $rhs }",
+      "transitions": [
+        {
+          "nextState": "SendEvent"
+        }
+      ]
+    },
+    {
+      "name": "SendEvent",
+      "enterAction": {
+        "type": "SendEvent",
+        "event": "provisioningCompleteEvent",
+        "expression": "${ .provisionedOrders }"
+      }
+    }
+  ]
+}

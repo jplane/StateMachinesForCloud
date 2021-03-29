@@ -1,0 +1,174 @@
+﻿{
+  "id": "booktravel",
+  "version": "1.0",
+  "name": "Travel Booking Saga Example",
+  "events": [
+    {
+      "name": "flightBookedEvent",
+      "type": "FlightBooked",
+      "source": "reservationSystem"
+    },
+    {
+      "name": "flightBookingFailedEvent",
+      "type": "FlightBookingFailed",
+      "source": "reservationSystem"
+    },
+    {
+      "name": "autoBookedEvent",
+      "type": "AutoBooked",
+      "source": "reservationSystem"
+    },
+    {
+      "name": "autoBookingFailedEvent",
+      "type": "AutoBookingFailed",
+      "source": "reservationSystem"
+    },
+    {
+      "name": "hotelBookedEvent",
+      "type": "HotelBooked",
+      "source": "reservationSystem"
+    },
+    {
+      "name": "hotelBookingFailedEvent",
+      "type": "HotelBookingFailed",
+      "source": "reservationSystem"
+    }
+  ],
+  "functions": [
+    {
+      "name": "callFlightReservationMicroservice",
+      "operation": "http://reservations.org/flight#makeReservation"
+    },
+    {
+      "name": "callFlightReservationUndoMicroservice",
+      "operation": "http://reservations.org/flight#undoReservation"
+    },
+    {
+      "name": "callHotelReservationMicroservice",
+      "operation": "http://reservations.org/hotel#makeReservation"
+    },
+    {
+      "name": "callAutoReservationMicroservice",
+      "operation": "http://reservations.org/auto#makeReservation"
+    },
+    {
+      "name": "reportErrors",
+      "operation": "http://errors.org#log"
+    }
+  ],
+  "states": [
+    {
+      "name": "BookFlight",
+      "start": true,
+      "enterAction": {
+        "type": "InvokeFunction",
+        "functionName": "callFlightReservationMicroservice",
+        "arguments": {
+          "flight": "${ .flightDetails }"
+        }
+      },
+      "transitions": [
+        {
+          "nextState": "BookAutoAndHotel",
+          "eventGroups": [
+            {
+              "events": [ "flightBookedEvent" ],
+              "resultHandler": "${ .bookedFlight += ($rhs | .Data) }"
+            }
+          ]
+        },
+        {
+          "nextState": "ReportError",
+          "eventGroups": [
+            {
+              "events": [ "flightBookingFailedEvent" ],
+              "resultHandler": "${ .error += ($rhs | .Data) }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BookAutoAndHotel",
+      "enterAction": {
+        "type": "parallel",
+        "completionType": "and",
+        "actions": [
+          {
+            "type": "InvokeFunction",
+            "functionName": "callHotelReservationMicroservice",
+            "arguments": {
+              "hotel": "${ .hotelDetails }",
+              "flight": "${ .bookedFlight }"
+            }
+          },
+          {
+            "type": "InvokeFunction",
+            "functionName": "callAutoReservationMicroservice",
+            "arguments": {
+              "auto": "${ .autoDetails }",
+              "flight": "${ .bookedFlight }"
+            }
+          }
+        ]
+      },
+      "transitions": [
+        {
+          "nextState": "Done",
+          "eventGroups": [
+            {
+              "events": [ "hotelBookedEvent" ],
+              "resultHandler": "${ .bookedHotel += ($rhs | .Data) }"
+            },
+            {
+              "events": [ "autoBookedEvent" ],
+              "resultHandler": "${ .bookedAuto += ($rhs | .Data) }"
+            }
+          ]
+        },
+        {
+          "nextState": "UndoFlightReservation",
+          "eventGroups": [
+            {
+              "events": [ "hotelBookingFailedEvent", "autoBookingFailedEvent" ],
+              "resultHandler": "${ .error += ($rhs | .Data) }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UndoFlightReservation",
+      "enterAction": {
+        "type": "InvokeFunction",
+        "functionName": "callFlightReservationUndoMicroservice",
+        "arguments": {
+          "flight": "${ .bookedFlight }"
+        }
+      },
+      "transitions": [
+        {
+          "nextState": "ReportError"
+        }
+      ]
+    },
+    {
+      "name": "ReportError",
+      "enterAction": {
+        "type": "InvokeFunction",
+        "functionName": "reportErrors",
+        "arguments": {
+          "error": "${ .error }"
+        }
+      },
+      "transitions": [
+        {
+          "nextState": "Done"
+        }
+      ]
+    },
+    {
+      "name": "Done"
+    }
+  ]
+}

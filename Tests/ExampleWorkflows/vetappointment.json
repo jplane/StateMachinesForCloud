@@ -1,0 +1,48 @@
+﻿{
+    "id": "VetAppointmentWorkflow",
+    "name": "Vet Appointment Workflow",
+    "description": "Vet service call via events",
+    "version": "1.0",
+    "events": [
+        {
+            "name": "MakeVetAppointment",
+            "source": "VetServiceSoure",
+            "kind": "produced"
+        },
+        {
+            "name": "VetAppointmentInfo",
+            "source": "VetServiceSource",
+            "kind": "consumed"
+        }
+    ],
+    "states": [
+      {
+        "name": "MakeVetAppointmentState",
+        "start": true,
+        "enterAction": {
+          "name": "MakeAppointmentAction",
+          "type": "SendEvent",
+          "event": "MakeVetAppointment",
+          "expression": "${ .patientInfo }"
+        },
+        "transitions": [
+          {
+            "nextState": "Done",
+            "eventGroups": [
+              {
+                "events": [ "VetAppointmentInfo" ],
+                "resultHandler": "${ .appointmentInfo += ($rhs | .Data) }"
+              }
+            ]
+          },
+          {
+            "nextState": "Done",
+            "timeout": "PT15M"
+          }
+        ]
+      },
+      {
+        "name": "Done"
+      }
+    ]
+}

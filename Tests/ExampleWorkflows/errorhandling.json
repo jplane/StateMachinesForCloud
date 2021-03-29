@@ -1,0 +1,80 @@
+﻿{
+  "id": "provisionorders",
+  "version": "1.0",
+  "name": "Provision Orders",
+  "description": "Provision Orders and handle errors thrown",
+  "functions": [
+    {
+      "name": "provisionOrderFunction",
+      "operation": "http://myapis.org/provisioningapi.json#doProvision"
+    }
+  ],
+  "states": [
+    {
+      "name": "ProvisionOrder",
+      "start": true,
+      "enterAction": {
+        "type": "InvokeFunction",
+        "functionName": "provisionOrderFunction",
+        "arguments": {
+          "order": "${ .order }"
+        },
+        "errorHandlers": [
+          {
+            "resultHandler": "${ .error += ($rhs | .Message) }"
+          }
+        ]
+      },
+      "transitions": [
+        {
+          "condition": "${ .error == \"Missing order id\" }",
+          "nextState": "MissingId"
+        },
+        {
+          "condition": "${ .error == \"Missing order item\" }",
+          "nextState": "MissingItem"
+        },
+        {
+          "condition": "${ .error == \"Missing order quantity\" }",
+          "nextState": "MissingQuantity"
+        },
+        {
+          "condition": "${ true }",
+          "nextState": "ApplyOrder"
+        }
+      ]
+    },
+    {
+      "name": "MissingId",
+      "enterAction": {
+        "type": "InvokeSubflow",
+        "subflowName": "handleMissingIdExceptionWorkflow"
+      },
+      "enterResultHandler": "${ .invokedWorkflowId += \"handleMissingIdExceptionWorkflow\" }"
+    },
+    {
+      "name": "MissingItem",
+      "enterAction": {
+        "type": "InvokeSubflow",
+        "subflowName": "handleMissingItemExceptionWorkflow"
+      },
+      "enterResultHandler": "${ .invokedWorkflowId += \"handleMissingItemExceptionWorkflow\" }"
+    },
+    {
+      "name": "MissingQuantity",
+      "enterAction": {
+        "type": "InvokeSubflow",
+        "subflowName": "handleMissingQuantityExceptionWorkflow"
+      },
+      "enterResultHandler": "${ .invokedWorkflowId += \"handleMissingQuantityExceptionWorkflow\" }"
+    },
+    {
+      "name": "ApplyOrder",
+      "enterAction": {
+        "type": "InvokeSubflow",
+        "subflowName": "applyOrderWorkflow"
+      },
+      "enterResultHandler": "${ .invokedWorkflowId += \"applyOrderWorkflow\" }"
+    }
+  ]
+}
