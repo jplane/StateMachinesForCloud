@@ -8,14 +8,15 @@ namespace SM4C.Engine
 {
     internal class StateMachineContext
     {
-        public StateMachineContext(StateMachine workflow, IStateMachineHost host, JToken? data, CancellationToken cancelToken)
+        public StateMachineContext(StateMachine workflow, IStateMachineHost host, JToken? input, CancellationToken cancelToken)
         {
             workflow.CheckArgNull(nameof(workflow));
             host.CheckArgNull(nameof(host));
 
             this.Workflow = workflow;
             this.Host = new HostProxy(host);
-            this.Data = data ?? new JObject();
+            this.Input = input ?? new JObject();
+            this.Output = new JObject();
             this.CancelToken = cancelToken;
         }
 
@@ -23,7 +24,9 @@ namespace SM4C.Engine
 
         public IStateMachineHost Host { get; }
 
-        public JToken Data { get; }
+        public JToken Input { get; }
+
+        public JToken Output { get; }
 
         public CancellationToken CancelToken { get; }
     }

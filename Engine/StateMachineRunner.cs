@@ -55,7 +55,7 @@ namespace SM4C.Engine
                 {
                     Debug.Assert(context != null);
 
-                    await workflow.Timeout.Action.ExecuteAsync(context, context.Data);
+                    await workflow.Timeout.Action.ExecuteAsync(context, context.Input);
                 }
             }
             else
@@ -84,7 +84,7 @@ namespace SM4C.Engine
                 state = await state.ExecuteAsync(context);
             }
 
-            return context.Data;
+            return context.Output;
         }
     }
 }

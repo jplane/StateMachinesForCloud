@@ -15,7 +15,7 @@ namespace SM4C.Engine.Extensions
             state.CheckArgNull(nameof(state));
             context.CheckArgNull(nameof(context));
 
-            var data = state.InputFilter?.EvalExpr(context.Data, context) ?? context.Data;
+            var data = state.InputFilter?.EvalExpr(context.Input, context) ?? context.Input;
 
             Debug.Assert(data != null);
 
@@ -25,7 +25,7 @@ namespace SM4C.Engine.Extensions
 
                 Debug.Assert(result != null);
 
-                result.Merge(context.Data, state.EnterResultHandler, context);
+                result.Merge(context.Output, state.EnterResultHandler, context);
             }
 
             State? nextState = null;
@@ -45,7 +45,7 @@ namespace SM4C.Engine.Extensions
 
                     Debug.Assert(result != null);
 
-                    result.Merge(context.Data, transition.ResultHandler, context);
+                    result.Merge(context.Output, transition.ResultHandler, context);
                 }
 
                 nextState = context.Workflow.ResolveStateByName(transition.NextState);
@@ -62,7 +62,7 @@ namespace SM4C.Engine.Extensions
 
                 Debug.Assert(result != null);
 
-                result.Merge(context.Data, state.ExitResultHandler, context);
+                result.Merge(context.Output, state.ExitResultHandler, context);
             }
 
             return nextState;
@@ -80,11 +80,11 @@ namespace SM4C.Engine.Extensions
             if (transition == null)
             {
                 transition = state.ResolveConditionalTransition(context, data);
+            }
 
-                if (transition == null)
-                {
-                    transition = await state.ResolveEventTransitionAsync(context, data);
-                }
+            if (transition == null)
+            {
+                transition = await state.ResolveEventTransitionAsync(context, data);
             }
 
             Debug.Assert(transition != null);
@@ -119,7 +119,7 @@ namespace SM4C.Engine.Extensions
 
                         Debug.Assert(json != null);
 
-                        json.Merge(context.Data, match.Group.ResultHandler, context);
+                        json.Merge(context.Output, match.Group.ResultHandler, context);
                     }
 
                     return matches.First().Transition;
