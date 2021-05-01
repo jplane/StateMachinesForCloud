@@ -42,6 +42,7 @@ namespace SM4C.Engine
 
             var data = getData?.Invoke() ?? new Dictionary<string, object>();
 
+            data["action"] = action.ToString();
             data["instanceId"] = this.Host.GetInstanceId();
             data["start"] = this.Host.GetStartTime();
             data["name"] = this.Workflow.Name;
@@ -54,7 +55,7 @@ namespace SM4C.Engine
                 data["description"] = this.Workflow.Description;
             }
 
-            return this.Host.RecordActionAsync(action, data);
+            return this.Host.OnObservableEventAsync(data);
         }
 
         public StateMachine Workflow { get; }

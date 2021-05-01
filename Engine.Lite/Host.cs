@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace SM4C.Engine.Lite
 {
@@ -19,6 +20,8 @@ namespace SM4C.Engine.Lite
         private readonly AsyncLock _lock = new AsyncLock();
         private readonly Queue<Event> _inputQueue = new Queue<Event>();
         private readonly Queue<Event> _outputQueue = new Queue<Event>();
+        private readonly Guid _instanceId = Guid.NewGuid();
+        private readonly DateTimeOffset _start = DateTimeOffset.UtcNow;
 
         public Host()
         {
@@ -164,6 +167,27 @@ namespace SM4C.Engine.Lite
             }
 
             return nextEventTask;
+        }
+
+        public string GetInstanceId()
+        {
+            return _instanceId.ToString();
+        }
+
+        public DateTimeOffset GetStartTime()
+        {
+            return _start;
+        }
+
+        public Task OnObservableEventAsync(IReadOnlyDictionary<string, object> data)
+        {
+            var json = JsonConvert.SerializeObject(data);
+
+            Debug.Assert(json != null);
+
+            Console.WriteLine(json);
+
+            return Task.CompletedTask;
         }
     }
 }

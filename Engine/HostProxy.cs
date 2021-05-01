@@ -93,9 +93,9 @@ namespace SM4C.Engine
             return task;
         }
 
-        public Task RecordActionAsync(ObservableAction action, IReadOnlyDictionary<string, object> data)
+        public Task OnObservableEventAsync(IReadOnlyDictionary<string, object> data)
         {
-            return _host.RecordActionAsync(action, data);
+            return _host.OnObservableEventAsync(data);
         }
     }
 }
