@@ -15,17 +15,28 @@ namespace SM4C.Engine
         public static async Task<JToken> RunAsync(StateMachine workflow,
                                                   IStateMachineHost host,
                                                   JObject? input = null,
+                                                  ObservableAction[]? targetActions = null,
                                                   CancellationToken cancelToken = default)
         {
             workflow.CheckArgNull(nameof(workflow));
             host.CheckArgNull(nameof(host));
 
-            StateMachineContext context = null;
+            StateMachineContext? context = null;
 
-            Func<CancellationToken, Task<JToken>> runTask = token =>
+            Func<CancellationToken, Task<JToken>> runTask = async token =>
             {
-                context = new StateMachineContext(workflow, host, input, token);
-                return RunAsync(context);
+                context = new StateMachineContext(workflow, host, input, targetActions, token);
+
+                await context.RecordObservableActionAsync(ObservableAction.EnterStateMachine);
+
+                try
+                {
+                    return await RunAsync(context);
+                }
+                finally
+                {
+                    await context.RecordObservableActionAsync(ObservableAction.ExitStateMachine);
+                }
             };
 
             JToken output;

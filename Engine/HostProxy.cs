@@ -56,6 +56,16 @@ namespace SM4C.Engine
             return _host.GetRandomDouble();
         }
 
+        public string GetInstanceId()
+        {
+            return _host.GetInstanceId();
+        }
+
+        public DateTimeOffset GetStartTime()
+        {
+            return _host.GetStartTime();
+        }
+
         public Task<JObject> InvokeAsync(string operation, IDictionary<string, object> parameters, CancellationToken cancelToken, bool waitForCompletion = true)
         {
             var task = _host.InvokeAsync(operation, parameters, cancelToken);
@@ -81,6 +91,11 @@ namespace SM4C.Engine
             cancelToken.ThrowIfCancellationRequested();
 
             return task;
+        }
+
+        public Task RecordActionAsync(ObservableAction action, IReadOnlyDictionary<string, object> data)
+        {
+            return _host.RecordActionAsync(action, data);
         }
     }
 }

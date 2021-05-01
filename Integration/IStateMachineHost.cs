@@ -11,7 +11,10 @@ namespace SM4C.Integration
     {
         bool GetRandomBool();
         double GetRandomDouble();
+        string GetInstanceId();
+        DateTimeOffset GetStartTime();
 
+        Task RecordActionAsync(ObservableAction action, IReadOnlyDictionary<string, object> data);
         Task DelayAsync(TimeSpan delay, CancellationToken cancelToken);
         Task<JObject> ExecuteSubflowAsync(string workflowId, JToken input, CancellationToken cancelToken, bool waitForCompletion = true);
         Task<JObject> InvokeAsync(string operation, IDictionary<string, object> parameters, CancellationToken cancelToken, bool waitForCompletion = true);

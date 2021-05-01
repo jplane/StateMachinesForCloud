@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using SM4C.Integration;
 
 namespace SM4C.Engine.Extensions
 {
@@ -20,6 +21,13 @@ namespace SM4C.Engine.Extensions
             action.CheckArgNull(nameof(action));
             context.CheckArgNull(nameof(context));
             input.CheckArgNull(nameof(input));
+
+            await context.RecordObservableActionAsync(ObservableAction.BeforeAction,
+                                                      () => new Dictionary<string, object>
+                                                      {
+                                                          { "actionName", action.Name },
+                                                          { "actionType", action.GetType().FullName }
+                                                      });
 
             Func<StateMachineContext, JToken, Task<JToken>> executeFunc = action switch
             {
@@ -43,7 +51,16 @@ namespace SM4C.Engine.Extensions
             {
                 try
                 {
-                    return await executeFunc(context, input);
+                    var result = await executeFunc(context, input);
+
+                    await context.RecordObservableActionAsync(ObservableAction.AfterAction,
+                                                              () => new Dictionary<string, object>
+                                                              {
+                                                                  { "actionName", action.Name },
+                                                                  { "actionType", action.GetType().FullName }
+                                                              });
+
+                    return result;
                 }
                 catch (Exception ex)
                 {
