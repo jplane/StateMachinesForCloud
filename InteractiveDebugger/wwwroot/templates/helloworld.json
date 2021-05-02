@@ -17,7 +17,7 @@
           "type": "InjectData",
           "expression": "${ \"Hello World!\" }"
         },
-        "enterResultHandler": "${ .result += $rhs }"
+        "enterResultHandler": "${ .result += $value }"
       }
     ]
   }

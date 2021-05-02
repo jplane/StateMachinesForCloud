@@ -32,12 +32,9 @@
                     time = DateTime.UtcNow.ToString("s"),
                     data = new
                     {
-                        bookedFlight = new
-                        {
-                            airline = "Delta",
-                            flightNumber = 118,
-                            price = 560d
-                        }
+                        airline = "Delta",
+                        flightNumber = 118,
+                        price = 560d
                     }
                 });
 
@@ -64,13 +61,10 @@
                     time = DateTime.UtcNow.ToString("o"),
                     data = new
                     {
-                        bookedHotel = new
-                        {
-                            hotel = "The W",
-                            address = "123 Congress Street Seattle WA",
-                            nights = 4,
-                            price = 650d,
-                        }
+                        hotel = "The W",
+                        address = "123 Congress Street Seattle WA",
+                        nights = 4,
+                        price = 650d
                     }
                 });
 
@@ -97,23 +91,17 @@
                     time = DateTime.UtcNow.ToString("o"),
                     data = new
                     {
-                        bookedAuto = new
-                        {
-                            make = "Honda",
-                            model = "Accord",
-                            days = 5,
-                            price = 325d,
-                        }
+                        make = "Honda",
+                        model = "Accord",
+                        days = 5,
+                        price = 325d
                     }
                 });
 
             return new AcceptedResult();
         }
 
-        #region Demo Details
-        // Callbacks go to the Durable Functions "raise event" API.
-        // Reference: https://docs.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-http-api#raise-event
-        const string CallbackUrlTemplate = "http://localhost:7071/runtime/webhooks/durabletask/instances/{instanceId}/raiseEvent/ServerlessWF::CloudEvent?code=Y9GF2wG2ogLfLFWEzLKhweH4MYnafMt4BqVybfXfCJCgbNz4U3tfww==";
+        const string CallbackUrlTemplate = "http://localhost:7071/api/statemachine/{instanceId}/event";
 
         static readonly HttpClient SharedHttpClient = new HttpClient();
         static readonly JsonMediaTypeFormatter SharedFormatter = new JsonMediaTypeFormatter();
@@ -123,12 +111,10 @@
             string instanceId = request.Headers["x-ms-workflow-instance-id"];
 
             // Simulate background processing
-            await Task.Delay(TimeSpan.FromSeconds(15));
+            await Task.Delay(TimeSpan.FromSeconds(10));
 
             string callbackUrl = CallbackUrlTemplate.Replace("{instanceId}", instanceId);
             await SharedHttpClient.PostAsync(callbackUrl, callbackEventPayload, SharedFormatter);
         }
-
-        #endregion
     }
 }

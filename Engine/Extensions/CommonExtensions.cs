@@ -95,17 +95,21 @@ namespace SM4C.Engine.Extensions
             }
             else
             {
+                expr = expr?.Replace("$input", $"({context.Input.ToString(Newtonsoft.Json.Formatting.None)})");
+
+                expr = expr?.Replace("$output", $"({context.Output.ToString(Newtonsoft.Json.Formatting.None)})");
+
                 return expr.EvalToToken(json);
             }
         }
 
-        public static JToken? Merge(this JToken rhs, JToken lhs, string? jqExpr, StateMachineContext context)
+        public static JToken? Merge(this JToken value, JToken lhs, string? jqExpr, StateMachineContext context)
         {
-            rhs.CheckArgNull(nameof(rhs));
+            value.CheckArgNull(nameof(value));
             lhs.CheckArgNull(nameof(lhs));
             context.CheckArgNull(nameof(context));
 
-            jqExpr = jqExpr?.Replace("$rhs", $"({rhs.ToString(Newtonsoft.Json.Formatting.None)})");
+            jqExpr = jqExpr?.Replace("$value", $"({value.ToString(Newtonsoft.Json.Formatting.None)})");
 
             return jqExpr.EvalExpr(lhs, context);
         }

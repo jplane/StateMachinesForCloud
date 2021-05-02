@@ -73,7 +73,7 @@
           "eventGroups": [
             {
               "events": [ "flightBookedEvent" ],
-              "resultHandler": "${ .bookedFlight += ($rhs | .Data) }"
+              "resultHandler": "${ .bookedFlight += ($value | .Data) }"
             }
           ]
         },
@@ -82,7 +82,7 @@
           "eventGroups": [
             {
               "events": [ "flightBookingFailedEvent" ],
-              "resultHandler": "${ .error += ($rhs | .Data) }"
+              "resultHandler": "${ .error += ($value | .Data) }"
             }
           ]
         }
@@ -118,11 +118,11 @@
           "eventGroups": [
             {
               "events": [ "hotelBookedEvent" ],
-              "resultHandler": "${ .bookedHotel += ($rhs | .Data) }"
+              "resultHandler": "${ .bookedHotel += ($value | .Data) }"
             },
             {
               "events": [ "autoBookedEvent" ],
-              "resultHandler": "${ .bookedAuto += ($rhs | .Data) }"
+              "resultHandler": "${ .bookedAuto += ($value | .Data) }"
             }
           ]
         },
@@ -131,7 +131,7 @@
           "eventGroups": [
             {
               "events": [ "hotelBookingFailedEvent", "autoBookingFailedEvent" ],
-              "resultHandler": "${ .error += ($rhs | .Data) }"
+              "resultHandler": "${ .error += ($value | .Data) }"
             }
           ]
         }

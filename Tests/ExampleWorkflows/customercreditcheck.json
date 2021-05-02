@@ -42,7 +42,7 @@
           "eventGroups": [
             {
               "events": [ "CreditCheckCompletedEvent" ],
-              "resultHandler": "${ .creditCheck += ($rhs | .Data) }"
+              "resultHandler": "${ .creditCheck += ($value | .Data) }"
             }
           ]
         },
@@ -74,7 +74,7 @@
         "type": "InjectData",
         "expression": "${ \"approved\" }"
       },
-      "enterResultHandler": "${ .status += $rhs }"
+      "enterResultHandler": "${ .status += $value }"
     },
     {
       "name": "MarkRejected",
@@ -82,7 +82,7 @@
         "type": "InjectData",
         "expression": "${ \"denied\" }"
       },
-      "enterResultHandler": "${ .status += $rhs }"
+      "enterResultHandler": "${ .status += $value }"
     }
   ]
 }

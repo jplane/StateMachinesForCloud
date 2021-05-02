@@ -20,7 +20,7 @@
           "name": "${ .person.name }"
         }
       },
-      "enterResultHandler": "${ .result += $rhs }"
+      "enterResultHandler": "${ .result += $value }"
     }
   ]
 }

@@ -13,6 +13,9 @@
     <Content Update="wwwroot\templates\helloworld.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Update="wwwroot\templates\travelbookingsaga.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
  
 </Project>

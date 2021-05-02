@@ -30,7 +30,7 @@
           }
         }
       },
-      "enterResultHandler": "${ .provisionedOrders += $rhs }",
+      "enterResultHandler": "${ .provisionedOrders += $value }",
       "transitions": [
         {
           "nextState": "SendEvent"
