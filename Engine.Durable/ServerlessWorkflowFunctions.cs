@@ -1,21 +1,26 @@
 ﻿namespace SM4C.Engine.Durable
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Net.Http;
     using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.SignalR.Client;
     using Microsoft.Azure.WebJobs.Extensions.DurableTask;
     using Microsoft.Azure.WebJobs.Script.Description;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Microsoft.OpenApi.Models;
     using Microsoft.OpenApi.Readers;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Nito.AsyncEx;
     using SM4C.Engine;
 
     /// <summary>
@@ -48,6 +53,7 @@
 
         internal static string StarterFunctionName => GetFunctionName(nameof(DurableWorkflowRunner));
         internal static string RESTfulServiceInvokerFunctionName => GetFunctionName(nameof(RESTfulServiceInvoker));
+        internal static string PublishTelemetryFunctionName => GetFunctionName(nameof(PublishTelemetry));
 
         /// <summary>
         /// Orchestrator function that runs a CNCF Serverless workflow.
@@ -55,8 +61,8 @@
         public static Task<JToken> DurableWorkflowRunner(IDurableOrchestrationContext context)
         {
             var args = context.GetInput<StartWorkflowArgs>();
-            var host = new DurableFunctionsHost(context);
-            return StateMachineRunner.RunAsync(args.Definition, host, args.Input);
+            var host = new DurableFunctionsHost(context, args.TelemetryUri);
+            return StateMachineRunner.RunAsync(args.Definition, host, args.Input, args.Actions);
         }
 
         /// <summary>
@@ -167,6 +173,60 @@
             }
 
             return result;
+        }
+
+        private static readonly ConcurrentDictionary<string, AsyncLazy<HubConnection>> _signalrConns =
+            new ConcurrentDictionary<string, AsyncLazy<HubConnection>>();
+
+        internal static async Task StopConnectionAsync(string instanceId)
+        {
+            if (_signalrConns.TryRemove(instanceId, out AsyncLazy<HubConnection> conn))
+            {
+                await (await conn).SendAsync("unregister", instanceId);
+                await (await conn).StopAsync();
+            }
+        }
+
+        /// <summary>
+        /// Activity function for publishing observable telemetry events.
+        /// </summary>
+        public static async Task<bool> PublishTelemetry(IDurableActivityContext context, ILogger logger)
+        {
+            Debug.Assert(context != null);
+
+            var config = context.GetInput<(string Uri, Dictionary<string, object> EventData)>();
+
+            Debug.Assert(!string.IsNullOrWhiteSpace(config.Uri));
+            Debug.Assert(config.EventData != null);
+            Debug.Assert(config.EventData.ContainsKey("instanceId"));
+
+            var instanceId = (string) config.EventData["instanceId"];
+
+            Debug.Assert(!string.IsNullOrWhiteSpace(instanceId));
+
+            var conn = await _signalrConns.GetOrAdd(instanceId, _ =>
+                new AsyncLazy<HubConnection>(async () =>
+                {
+                    var signalr = new HubConnectionBuilder()
+                            .WithUrl(config.Uri)
+                            .AddNewtonsoftJsonProtocol()
+                            .Build();
+
+                    await signalr.StartAsync();
+                    await signalr.SendAsync("register", instanceId);
+
+                    return signalr;
+                }));
+
+            var tcs = new TaskCompletionSource<bool>();
+
+            using var disposable = conn.On("resume", () => tcs.SetResult(true));
+
+            await conn.SendAsync("break", instanceId, config.EventData);
+
+            await tcs.Task;
+
+            return true;
         }
 
         /// <inheritdoc/>

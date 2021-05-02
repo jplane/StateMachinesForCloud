@@ -12,103 +12,80 @@ namespace SM4C.Engine.Durable.TestApp
     using Microsoft.Azure.WebJobs.Extensions.DurableTask;
     using Newtonsoft.Json.Linq;
     using SM4C.Model;
+    using Microsoft.Extensions.Configuration;
+    using SM4C.Integration;
 
-    public static class HttpStarter
+    public class HttpStarter
     {
-        [FunctionName(nameof(ManualStart))]
-        public static async Task<IActionResult> ManualStart(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "workflows/{workflowName}")] HttpRequest req,
-            [DurableClient] IDurableClient client,
-            string workflowName,
-            ILogger log)
+        private readonly IConfiguration _config;
+
+        public HttpStarter(IConfiguration config)
         {
-            StateMachine? workflow = await LoadWorkflowAsync(workflowName);
-            if (workflow == null)
-            {
-                return new NotFoundObjectResult($"Could not find workflow named '{workflowName}'.");
-            }
-
-            var input = new JObject();
-            if (req.ContentLength != 0)
-            {
-                input = JObject.Parse(await req.ReadAsStringAsync());
-            }
-
-            var args = new StartWorkflowArgs(workflow, input);
-            string instanceId = await client.StartWorkflowAsync(args);
-
-            log.LogInformation($"Started new workflow '{workflowName}' with ID = '{instanceId}.");
-            return client.CreateCheckStatusResponse(req, instanceId);
+            _config = config;
         }
 
-        [FunctionName(nameof(EventStart))]
-        public static async Task<IActionResult> EventStart(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "workflows/{workflowName}/{instanceId}")] HttpRequest req,
+        [FunctionName(nameof(StartStateMachine))]
+        public async Task<IActionResult> StartStateMachine(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "statemachine/{instanceId}")] HttpRequest req,
             [DurableClient] IDurableClient client,
-            string workflowName,
             string instanceId,
             ILogger log)
         {
-            StateMachine? workflow = await LoadWorkflowAsync(workflowName);
-            if (workflow == null)
+            StateMachine? workflow = null;
+            JObject? input = null;
+            ObservableAction[]? actions = null;
+
+            if (req.ContentLength != 0)
             {
-                return new NotFoundObjectResult($"Could not find workflow named '{workflowName}'.");
+                var json = JObject.Parse(await req.ReadAsStringAsync());
+
+                workflow = json.Property("workflow")?.Value.ToObject<StateMachine>();
+
+                input = (JObject) (json.Property("input")?.Value ?? new JObject());
+
+                actions = json.Property("actions")?.Value.ToObject<ObservableAction[]>();
             }
 
+            if (workflow == null)
+            {
+                return new BadRequestObjectResult("Unable to deserialize state machine definition in request payload.");
+            }
+
+            var args = new StartWorkflowArgs(workflow, input, actions, _config["TELEMETRY_URI"]);
+            
+            await client.StartWorkflowAsync(args, instanceId);
+
+            log.LogInformation($"Started new workflow '{workflow.Name}' with ID = '{instanceId}.");
+            
+            return client.CreateCheckStatusResponse(req, instanceId);
+        }
+
+        [FunctionName(nameof(RaiseEvent))]
+        public async Task<IActionResult> RaiseEvent(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "statemachine/{instanceId}/event")] HttpRequest req,
+            [DurableClient] IDurableClient client,
+            string instanceId,
+            ILogger log)
+        {
             if (req.ContentLength == 0)
             {
                 return new BadRequestObjectResult($"The request payload must contain a valid cloud event JSON object.");
             }
 
-            WorkflowEvent? eventData = null;
-            using var reader = new JsonTextReader(new StreamReader(req.Body));
-            try
-            {
-                JObject json = await JObject.LoadAsync(reader);
-                eventData = json.ToObject<WorkflowEvent>();
-            }
-            catch (JsonReaderException)
-            {
-                log.LogWarning("Received a request payload that was not JSON!");
-            }
+            var json = JObject.Parse(await req.ReadAsStringAsync());
 
-            if (eventData == null ||
-                eventData.EventType == null ||
-                eventData.EventName == null)
+            var eventData = json.ToObject<WorkflowEvent>();
+
+            if (eventData == null || eventData.EventType == null || eventData.EventName == null)
             {
                 return new BadRequestObjectResult($"The request payload must be a valid cloud event JSON object.");
             }
 
-            try
-            {
-                await client.RaiseWorkflowEventAsync(
-                    instanceId,
-                    workflow,
-                    eventData);
-            }
-            catch (InvalidOperationException e)
-            {
-                return new BadRequestObjectResult(e.Message);
-            }
+            await client.RaiseWorkflowEventAsync(instanceId, eventData);
 
-            log.LogInformation($"Raised event of type '{eventData.EventType}' to '{workflowName}' with ID = '{instanceId}.");
+            log.LogInformation($"Raised event of type '{eventData.EventType}' to workflow ID = '{instanceId}.");
+
             return client.CreateCheckStatusResponse(req, instanceId);
-        }
-
-        static async Task<StateMachine?> LoadWorkflowAsync(string workflowName)
-        {
-            string definitionJson;
-            try
-            {
-                definitionJson = await File.ReadAllTextAsync($"Workflows/{workflowName}");
-            }
-            catch (FileNotFoundException)
-            {
-                return null;
-            }
-
-            StateMachine workflow = JsonConvert.DeserializeObject<StateMachine>(definitionJson);
-            return workflow;
         }
     }
 }

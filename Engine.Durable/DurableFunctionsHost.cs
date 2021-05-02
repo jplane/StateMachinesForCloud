@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.DurableTask;
@@ -12,11 +13,14 @@
     {
         readonly IDurableOrchestrationContext orchestrationContext;
         readonly Random deterministicRandom;
+        readonly DateTimeOffset start = DateTimeOffset.UtcNow;
+        readonly string? telemetryUri;
 
-        public DurableFunctionsHost(IDurableOrchestrationContext orchestrationContext)
+        public DurableFunctionsHost(IDurableOrchestrationContext orchestrationContext, string? telemetryUri)
         {
             this.orchestrationContext = orchestrationContext ?? throw new ArgumentNullException(nameof(orchestrationContext));
             this.deterministicRandom = new Random(GetDeterministicRandomSeed(orchestrationContext));
+            this.telemetryUri = telemetryUri;
         }
 
         public IEvent CreateEventInstance(string name, string type, string source, JToken data, IDictionary<string, string> contextAttributes)
@@ -86,6 +90,23 @@
         {
             string key = $"{context.Name}|{context.InstanceId}|{context.CurrentUtcDateTime:s}";
             return key.GetHashCode();
+        }
+
+        public string GetInstanceId()
+        {
+            return this.orchestrationContext.InstanceId;
+        }
+
+        public DateTimeOffset GetStartTime()
+        {
+            return this.start;
+        }
+
+        public Task OnObservableEventAsync(IReadOnlyDictionary<string, object> eventData)
+        {
+            var args = (this.telemetryUri, eventData);
+
+            return this.orchestrationContext.CallActivityAsync<bool>(ServerlessWorkflowFunctions.PublishTelemetryFunctionName, args);
         }
     }
 }

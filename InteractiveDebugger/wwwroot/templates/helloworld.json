@@ -1,0 +1,24 @@
+﻿{
+  "actions": [
+    "EnterStateMachine",
+    "ExitStateMachine"
+  ],
+  "input": {},
+  "workflow": {
+    "id": "helloworld",
+    "version": "1.0",
+    "name": "Hello World Workflow",
+    "description": "Inject Hello World",
+    "states": [
+      {
+        "name": "Hello State",
+        "start": true,
+        "enterAction": {
+          "type": "InjectData",
+          "expression": "${ \"Hello World!\" }"
+        },
+        "enterResultHandler": "${ .result += $rhs }"
+      }
+    ]
+  }
+}

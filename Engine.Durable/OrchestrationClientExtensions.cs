@@ -23,21 +23,16 @@
         public static async Task RaiseWorkflowEventAsync(
             this IDurableOrchestrationClient client,
             string instanceId,
-            StateMachine autostartWorkflowDefinition,
             WorkflowEvent workflowEvent)
         {
             ThrowIfNullArgument(instanceId, nameof(instanceId));
-            ThrowIfNullArgument(autostartWorkflowDefinition, nameof(autostartWorkflowDefinition));
             ThrowIfNullArgument(workflowEvent, nameof(workflowEvent));
 
             DurableOrchestrationStatus? status = await client.GetStatusAsync(instanceId, showInput: false);
+
             if (status == null)
             {
-                // WARNING: This code is NOT thread-safe! Until DF supports auto-start on raised events natively,
-                //          the only way to ensure safe execution is to protect these calls with a distributed lock.
-                await client.StartWorkflowAsync(
-                    new StartWorkflowArgs(autostartWorkflowDefinition, workflowEvent.ToJson()),
-                    instanceId);
+                throw new NotSupportedException();
             }
             else if (status.RuntimeStatus == OrchestrationRuntimeStatus.Completed ||
                      status.RuntimeStatus == OrchestrationRuntimeStatus.Terminated ||
