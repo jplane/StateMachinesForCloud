@@ -126,7 +126,7 @@
               "functionName": "callHotelReservationMicroservice",
               "arguments": {
                 "hotel": "${ .hotelDetails }",
-                "flight": "${ $output.bookedFlight }"
+                "flight": "${ .bookedFlight }"
               }
             },
             {
@@ -134,7 +134,7 @@
               "functionName": "callAutoReservationMicroservice",
               "arguments": {
                 "auto": "${ .autoDetails }",
-                "flight": "${ $output.bookedFlight }"
+                "flight": "${ .bookedFlight }"
               }
             }
           ]
@@ -170,7 +170,7 @@
           "type": "InvokeFunction",
           "functionName": "callFlightReservationUndoMicroservice",
           "arguments": {
-            "flight": "${ $output.bookedFlight }"
+            "flight": "${ .bookedFlight }"
           }
         },
         "transitions": [
@@ -185,7 +185,7 @@
           "type": "InvokeFunction",
           "functionName": "reportErrors",
           "arguments": {
-            "error": "${ $output.error }"
+            "error": "${ .error }"
           }
         },
         "transitions": [

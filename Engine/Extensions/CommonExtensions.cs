@@ -95,10 +95,6 @@ namespace SM4C.Engine.Extensions
             }
             else
             {
-                expr = expr?.Replace("$input", $"({context.Input.ToString(Newtonsoft.Json.Formatting.None)})");
-
-                expr = expr?.Replace("$output", $"({context.Output.ToString(Newtonsoft.Json.Formatting.None)})");
-
                 return expr.EvalToToken(json);
             }
         }

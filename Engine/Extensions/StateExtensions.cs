@@ -36,7 +36,7 @@ namespace SM4C.Engine.Extensions
 
                     Debug.Assert(result != null);
 
-                    result.Merge(context.Output, transition.ResultHandler, context);
+                    result.Merge(context.Data, transition.ResultHandler, context);
                 }
 
                 nextState = context.Workflow.ResolveStateByName(transition.NextState);
@@ -63,7 +63,7 @@ namespace SM4C.Engine.Extensions
                                                           { "stateName", state.Name }
                                                       });
 
-            var data = state.InputFilter?.EvalExpr(context.Input, context) ?? context.Input;
+            var data = state.InputFilter?.EvalExpr(context.Data, context) ?? context.Data;
 
             Debug.Assert(data != null);
 
@@ -73,7 +73,7 @@ namespace SM4C.Engine.Extensions
 
                 Debug.Assert(result != null);
 
-                result.Merge(context.Output, state.EnterResultHandler, context);
+                result.Merge(context.Data, state.EnterResultHandler, context);
             }
 
             return data;
@@ -91,7 +91,7 @@ namespace SM4C.Engine.Extensions
 
                 Debug.Assert(result != null);
 
-                result.Merge(context.Output, state.ExitResultHandler, context);
+                result.Merge(context.Data, state.ExitResultHandler, context);
             }
 
             await context.RecordObservableActionAsync(ObservableAction.ExitState,
@@ -156,7 +156,7 @@ namespace SM4C.Engine.Extensions
 
                         Debug.Assert(json != null);
 
-                        json.Merge(context.Output, match.Group.ResultHandler, context);
+                        json.Merge(context.Data, match.Group.ResultHandler, context);
                     }
 
                     return matches.First().Transition;
@@ -167,7 +167,7 @@ namespace SM4C.Engine.Extensions
                                                                            (t.EventGroups == null || t.EventGroups.Count == 0) &&
                                                                            t.Timeout != null);
 
-            Transition next = null;
+            Transition next;
 
             if (timeoutTransition != null)
             {

@@ -16,7 +16,7 @@ namespace SM4C.Engine
 
         public StateMachineContext(StateMachine workflow,
                                    IStateMachineHost host,
-                                   JToken? input,
+                                   JToken? data,
                                    ObservableAction[]? targetActions,
                                    CancellationToken cancelToken)
         {
@@ -25,8 +25,7 @@ namespace SM4C.Engine
 
             this.Workflow = workflow;
             this.Host = new HostProxy(host);
-            this.Input = input ?? new JObject();
-            this.Output = new JObject();
+            this.Data = data ?? new JObject();
             this.CancelToken = cancelToken;
 
             _targetActions = targetActions;
@@ -47,8 +46,7 @@ namespace SM4C.Engine
             data["start"] = this.Host.GetStartTime();
             data["name"] = this.Workflow.Name;
             data["version"] = this.Workflow.Version;
-            data["input"] = this.Input.ToString();
-            data["output"] = this.Output.ToString();
+            data["data"] = this.Data.ToString();
 
             if (!string.IsNullOrWhiteSpace(this.Workflow.Description))
             {
@@ -62,9 +60,7 @@ namespace SM4C.Engine
 
         public IStateMachineHost Host { get; }
 
-        public JToken Input { get; }
-
-        public JToken Output { get; }
+        public JToken Data { get; }
 
         public CancellationToken CancelToken { get; }
     }

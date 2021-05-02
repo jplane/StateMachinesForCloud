@@ -116,7 +116,7 @@ namespace SM4C.Engine.Extensions
                 {
                     if (handler.Condition?.EvalPredicateExpr(error, context) ?? true)
                     {
-                        error.Merge(context.Output, handler.ResultHandler, context);
+                        error.Merge(context.Data, handler.ResultHandler, context);
 
                         retry = context.Workflow.Retries?.SingleOrDefault(r => r.Name.IsEqualTo(handler.RetryPolicy ?? string.Empty));
 
