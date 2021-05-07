@@ -446,12 +446,12 @@ Data references within actions (function arguments, etc.) are defined using stat
 1. if state.EnterAction is not null, invoke the action using global data as input
 1. is state.EnterResultHandler is not null, apply the handler to merge enter action result into state machine data
 1. if the state has zero transitions, the state machine ends
-1. if the state has exactly one implicit transition, it is triggered:
+1. if the state has exactly one implicit transition, it is triggered (goto 9):
     - no condition
     - no eventGroups
     - no timeout
-1. for each transition with a condition but no defined eventGroups or timeouts, the first such transition where condition evaluates to true is triggered (evaluated in defined order)
-1. for each transition with no condition or timeout, but with defined eventGroups, the first such transition with matched events is triggered
+1. for each transition with a condition but no defined eventGroups or timeouts, the first such transition where condition evaluates to true is triggered (goto 9)
+1. for each transition with no condition or timeout, but with defined eventGroups, the first such transition with matched events is triggered (goto 9)
     - within an event group, the arrival of *any* defined event satisfies the event group match
     - a transition is triggered when *all* its event groups are matched
     - while waiting for event arrival, if a single transition exists with defined timeout but no defined condition or eventGroups, that transition is triggered if its timeout duration is reached
@@ -460,5 +460,5 @@ Data references within actions (function arguments, etc.) are defined using stat
 1. if triggeredTransition.NextState is null, goto 5
 1. if state.ExitAction is not null, invoke the action using global data as input
 1. is state.ExitResultHandler is not null, apply the handler to merge enter action result into state machine data
-1. resolve triggeredTransition.NextState and goto 1
+1. resolve triggeredTransition.NextState and goto 2
 ---
