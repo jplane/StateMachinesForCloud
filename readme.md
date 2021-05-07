@@ -21,7 +21,7 @@ SM4C defines states, transitions, actions, data, and event-handling as first-cla
         "type": "injectData",
         "expression": "${ \"Hello World!\" }"
       },
-      "enterResultHandler": "${ .result += $rhs }"
+      "enterResultHandler": "${ .result += $value }"
     }
   ]
 }
@@ -77,7 +77,7 @@ StateMachine is the top-level entity in the model. It contains collections of st
         "type": "injectData",
         "expression": "${ \"Hello World!\" }"
       },
-      "enterResultHandler": "${ .result += $rhs }"
+      "enterResultHandler": "${ .result += $value }"
     }
   ]
 }
@@ -153,7 +153,7 @@ Transitions may be implicit, where the system moves from one state to another au
     "eventGroups": [
         {
             "events": [ "CreditCheckCompletedEvent" ],
-            "resultHandler": "${ .creditCheck += ($rhs | .Data) }"
+            "resultHandler": "${ .creditCheck += ($value | .Data) }"
         }
     ]
 }

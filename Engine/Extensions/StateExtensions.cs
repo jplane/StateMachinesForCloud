@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SM4C.Integration;
+using System.Collections.Generic;
 
 namespace SM4C.Engine.Extensions
 {
@@ -15,18 +17,7 @@ namespace SM4C.Engine.Extensions
             state.CheckArgNull(nameof(state));
             context.CheckArgNull(nameof(context));
 
-            var data = state.InputFilter?.EvalExpr(context.Data, context) ?? context.Data;
-
-            Debug.Assert(data != null);
-
-            if (state.EnterAction != null)
-            {
-                var result = await state.EnterAction.ExecuteAsync(context, data);
-
-                Debug.Assert(result != null);
-
-                result.Merge(context.Data, state.EnterResultHandler, context);
-            }
+            JToken data = await EnterState(state, context);
 
             State? nextState = null;
 
@@ -56,6 +47,44 @@ namespace SM4C.Engine.Extensions
                 }
             }
 
+            await ExitState(state, context, data);
+
+            return nextState;
+        }
+
+        private static async Task<JToken> EnterState(State state, StateMachineContext context)
+        {
+            Debug.Assert(state != null);
+            Debug.Assert(context != null);
+
+            await context.RecordObservableActionAsync(ObservableAction.EnterState,
+                                                      () => new Dictionary<string, object>
+                                                      {
+                                                          { "stateName", state.Name }
+                                                      });
+
+            var data = state.InputFilter?.EvalExpr(context.Data, context) ?? context.Data;
+
+            Debug.Assert(data != null);
+
+            if (state.EnterAction != null)
+            {
+                var result = await state.EnterAction.ExecuteAsync(context, data);
+
+                Debug.Assert(result != null);
+
+                result.Merge(context.Data, state.EnterResultHandler, context);
+            }
+
+            return data;
+        }
+
+        private static async Task ExitState(State state, StateMachineContext context, JToken data)
+        {
+            Debug.Assert(state != null);
+            Debug.Assert(context != null);
+            Debug.Assert(data != null);
+
             if (state.ExitAction != null)
             {
                 var result = await state.ExitAction.ExecuteAsync(context, data);
@@ -65,11 +94,19 @@ namespace SM4C.Engine.Extensions
                 result.Merge(context.Data, state.ExitResultHandler, context);
             }
 
-            return nextState;
+            await context.RecordObservableActionAsync(ObservableAction.ExitState,
+                                                      () => new Dictionary<string, object>
+                                                      {
+                                                          { "stateName", state.Name }
+                                                      });
         }
 
         private static async Task<Transition?> ResolveTransitionAsync(this State state, StateMachineContext context, JToken data)
         {
+            Debug.Assert(state != null);
+            Debug.Assert(context != null);
+            Debug.Assert(data != null);
+
             if (state.Transitions.Count == 0)
             {
                 return null;
@@ -80,11 +117,11 @@ namespace SM4C.Engine.Extensions
             if (transition == null)
             {
                 transition = state.ResolveConditionalTransition(context, data);
+            }
 
-                if (transition == null)
-                {
-                    transition = await state.ResolveEventTransitionAsync(context, data);
-                }
+            if (transition == null)
+            {
+                transition = await state.ResolveEventTransitionAsync(context, data);
             }
 
             Debug.Assert(transition != null);
@@ -130,7 +167,7 @@ namespace SM4C.Engine.Extensions
                                                                            (t.EventGroups == null || t.EventGroups.Count == 0) &&
                                                                            t.Timeout != null);
 
-            Transition next = null;
+            Transition next;
 
             if (timeoutTransition != null)
             {

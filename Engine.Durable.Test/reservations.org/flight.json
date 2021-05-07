@@ -1,0 +1,28 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Swashbuckle",
+    "description": "Swagger document by Swashbuckle",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7071"
+    }
+  ],
+  "paths": {
+    "/api/flights/reserve": {
+      "post": {
+        "operationId": "makeReservation",
+        "tags": [
+          "Flights_MakeReservation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}

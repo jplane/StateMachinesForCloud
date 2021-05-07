@@ -3,12 +3,22 @@ using SM4C.Integration;
 using SM4C.Model;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
+using System;
 
 namespace SM4C.Engine
 {
     internal class StateMachineContext
     {
-        public StateMachineContext(StateMachine workflow, IStateMachineHost host, JToken? data, CancellationToken cancelToken)
+        private readonly ObservableAction[]? _targetActions = null;
+
+        public StateMachineContext(StateMachine workflow,
+                                   IStateMachineHost host,
+                                   JToken? data,
+                                   ObservableAction[]? targetActions,
+                                   CancellationToken cancelToken)
         {
             workflow.CheckArgNull(nameof(workflow));
             host.CheckArgNull(nameof(host));
@@ -17,6 +27,33 @@ namespace SM4C.Engine
             this.Host = new HostProxy(host);
             this.Data = data ?? new JObject();
             this.CancelToken = cancelToken;
+
+            _targetActions = targetActions;
+        }
+
+        public Task RecordObservableActionAsync(ObservableAction action,
+                                                Func<Dictionary<string, object>>? getData = null)
+        {
+            if (_targetActions == null || !_targetActions.Contains(action))
+            {
+                return Task.CompletedTask;
+            }
+
+            var data = getData?.Invoke() ?? new Dictionary<string, object>();
+
+            data["action"] = action.ToString();
+            data["instanceId"] = this.Host.GetInstanceId();
+            data["start"] = this.Host.GetStartTime();
+            data["name"] = this.Workflow.Name;
+            data["version"] = this.Workflow.Version;
+            data["data"] = this.Data.ToString();
+
+            if (!string.IsNullOrWhiteSpace(this.Workflow.Description))
+            {
+                data["description"] = this.Workflow.Description;
+            }
+
+            return this.Host.OnObservableEventAsync(data);
         }
 
         public StateMachine Workflow { get; }

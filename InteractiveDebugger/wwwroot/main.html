@@ -1,0 +1,310 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.1.8/jsoneditor.css"
+          integrity="sha512-jleMREJi/sXJYu6+/B0AQIgzmqq0yy/NUKNZu8K/pI1vedbvTCOzUjS8svSW21JA1YiDpAEuVIxHpt4OWAilYQ=="
+          crossorigin="anonymous" />
+
+    <title>State Machines For Cloud - Web Debugger</title>
+
+    <style type="text/css">
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            max-width: 150px;
+        }
+
+        td, th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+
+        /* https://www.w3schools.com/howto/howto_css_three_columns.asp */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .column {
+            float: left;
+            width: 50%;
+            padding: 10px;
+        }
+
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .highlighted {
+            background: #faf2c2
+        }
+    </style>
+
+</head>
+<body>
+    <div class="row">
+        <div class="column">
+            <h3>Definition</h3>
+            <label for="templates">State machine template:</label>
+            <select name="templates" id="templates">
+                <option value="/templates/helloworld.json" selected>Hello World</option>
+                <option value="/templates/travelbookingsaga.json" selected>Travel Booking (long-running saga)</option>
+            </select>
+            <br />
+            <br />
+            <div id="jsoneditor" style="height: 800px;"></div>
+            <br />
+            <br />
+            <input type="button" id="start-button" value="Start New Instance" />
+        </div>
+        <div class="column">
+            <div>
+                <h3>Output</h3>
+                <label for="instances">State machine instance:</label>
+                <select name="instances" id="instances">
+                </select>
+                <input type="button" id="status-button" value="Get Status" disabled />
+                <br />
+                <br />
+                <label for="sendevent">Event:</label>
+                <br />
+                <br />
+                <textarea id="sendevent" name="sendevent" rows="6" cols="40">
+{
+  "id": "",
+  "subject": "",
+  "source": "",
+  "type": "",
+  "data": {
+  }
+}
+            </textarea>
+                <br />
+                <br />
+                <input type="button" id="send-event-button" value="Send Event" disabled />
+                <br />
+                <br />
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="output-table-body"></tbody>
+                </table>
+            </div>
+            <br />
+            <br />
+            <div id="debugger">
+                <h3>Debugger</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="info-table-body"></tbody>
+                </table>
+                <br />
+                <br />
+                <input type="button" id="resume-button" value="Resume" disabled />
+            </div>
+        </div>
+    </div>
+    <br />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.1.8/jsoneditor.js"
+            integrity="sha512-Mzq/twLJa9AKKG/Lic25qLqwrzQ39ZqQMV4PpTcxN02MCXRBNd2C21hWvpJGg6PYTWqbPxSIHCoA4pkU66iBzA=="
+            crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/5.0.2/signalr.js"
+            integrity="sha512-e1T56eW9d9boBAtzV3lvoDip3g9j3V/kJPscBH61//WkVKfbAJtzDd0LVeNDJWj6quyTi4Bw67PutCVsP4iJIQ=="
+            crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"
+            integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ=="
+            crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuidv4.min.js"
+            integrity="sha512-BCMqEPl2dokU3T/EFba7jrfL4FxgY6ryUh4rRC9feZw4yWUslZ3Uf/lPZ5/5UlEjn4prlQTRfIPYQkDrLCZJXA=="
+            crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+
+        const start_endpoint = 'http://localhost:7071/api/statemachine/';
+        const event_endpoint = 'http://localhost:7071/api/statemachine/{instanceId}/event/';
+
+        const container = document.getElementById('jsoneditor');
+
+        const options = {
+            mode: 'code'
+        };
+
+        const editor = new JSONEditor(container, options);
+
+        function loadEditor() {
+
+            axios.get(document.getElementById('templates').value)
+                .then(resp => {
+                    editor.set(resp.data);
+                });
+        }
+
+        loadEditor();
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            document.getElementById('templates').addEventListener('change', function () {
+
+                loadEditor();
+            });
+
+            document.getElementById('send-event-button').addEventListener('click', function () {
+
+                var instanceData = JSON.parse(document.getElementById('instances').value);
+
+                var sendeventuri = event_endpoint.replace("{instanceId}", instanceData.id);
+
+                if (sendeventuri) {
+                    axios.post(sendeventuri, JSON.parse(sendevent.value));
+                }
+            });
+
+            document.getElementById('status-button').addEventListener('click', function () {
+
+                var instanceData = JSON.parse(document.getElementById('instances').value);
+
+                var statusuri = instanceData.statusQueryGetUri;
+
+                if (statusuri) {
+
+                    axios.get(statusuri)
+                        .then(resp => {
+
+                            var existingTableBody = document.getElementById('output-table-body');
+
+                            var newTableBody = document.createElement('tbody');
+
+                            newTableBody.id = 'output-table-body';
+
+                            var keys = ['createdTime', 'lastUpdatedTime', 'runtimeStatus', 'input', 'output'];
+
+                            for (var key of keys) {
+
+                                var encodedKey = key;
+                                var encodedValue = resp.data[key];
+
+                                if (typeof encodedValue === 'object' && encodedValue !== null) {
+                                    encodedValue = JSON.stringify(encodedValue, null, 2);
+                                }
+
+                                var row = document.createElement('tr');
+
+                                row.innerHTML = '<td><strong>' + encodedKey + '</strong></td><td>' + encodedValue + '</td>';
+
+                                newTableBody.appendChild(row);
+                            }
+
+                            existingTableBody.parentElement.replaceChild(newTableBody, existingTableBody);
+                        });
+                }
+
+            });
+
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl('/observer')
+                .build();
+
+            document.getElementById('start-button').addEventListener('click', function () {
+
+                var instanceId = uuidv4();
+
+                connection.send('register', instanceId);
+
+                axios.post(start_endpoint + instanceId, editor.get())
+                    .then(resp => {
+
+                        var select = document.getElementById('instances');
+
+                        var option = document.createElement('option');
+
+                        option.value = JSON.stringify(resp.data);
+
+                        option.innerText = resp.data.id;
+
+                        select.appendChild(option);
+
+                        option.selected = true;
+
+                        document.getElementById('status-button').disabled = false;
+
+                        document.getElementById('send-event-button').disabled = false;
+                    });
+
+            });
+
+            connection.on('break', function (info) {
+
+                var existingTableBody = document.getElementById('info-table-body');
+
+                var newTableBody = document.createElement('tbody');
+
+                newTableBody.id = 'info-table-body';
+
+                for (var key in info) {
+
+                    var encodedKey = key;
+                    var encodedValue = info[key];
+
+                    var row = document.createElement('tr');
+
+                    row.innerHTML = '<td><strong>' + encodedKey + '</strong></td><td>' + encodedValue + '</td>';
+
+                    newTableBody.appendChild(row);
+                }
+
+                existingTableBody.parentElement.replaceChild(newTableBody, existingTableBody);
+
+                document.getElementById('resume-button').disabled = false;
+
+                document.getElementById('debugger').classList.add('highlighted');
+
+                setTimeout(function () { document.getElementById('debugger').classList.remove('highlighted'); }, 500);
+            });
+
+            connection.start()
+                .then(function () {
+
+                    document.getElementById('resume-button').addEventListener('click', function (event) {
+
+                        var instanceData = JSON.parse(document.getElementById('instances').value);
+
+                        var currentInstanceId = instanceData.id;
+
+                        connection.send('resume', currentInstanceId);
+
+                        document.getElementById('resume-button').disabled = true;
+
+                        event.preventDefault();
+                    });
+                })
+                .catch(error => {
+                    console.error(error.message);
+                });
+        });
+
+    </script>
+</body>
+</html>

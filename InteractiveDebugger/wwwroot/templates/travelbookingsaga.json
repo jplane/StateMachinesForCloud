@@ -1,0 +1,202 @@
+﻿{
+  "actions": [
+    "EnterStateMachine",
+    "ExitStateMachine",
+    "EnterState",
+    "ExitState",
+    "BeforeAction",
+    "AfterAction"
+  ],
+  "input": {
+    "flightDetails": {
+      "origin": "ATL",
+      "destination": "SEA",
+      "maxPrice": 500,
+      "departDate": "6/1/2021",
+      "returnDate": "6/10/2021"
+    },
+    "hotelDetails": {
+      "preferred": [
+        "Marriott",
+        "Starwood"
+      ]
+    },
+    "autoDetails": {
+      "category": "midsize"
+    }
+  },
+  "workflow": {
+    "id": "booktravel",
+    "version": "1.0",
+    "name": "Travel Booking Saga Example",
+    "events": [
+      {
+        "name": "flightBookedEvent",
+        "type": "FlightBooked",
+        "source": "reservationSystem"
+      },
+      {
+        "name": "flightBookingFailedEvent",
+        "type": "FlightBookingFailed",
+        "source": "reservationSystem"
+      },
+      {
+        "name": "autoBookedEvent",
+        "type": "AutoBooked",
+        "source": "reservationSystem"
+      },
+      {
+        "name": "autoBookingFailedEvent",
+        "type": "AutoBookingFailed",
+        "source": "reservationSystem"
+      },
+      {
+        "name": "hotelBookedEvent",
+        "type": "HotelBooked",
+        "source": "reservationSystem"
+      },
+      {
+        "name": "hotelBookingFailedEvent",
+        "type": "HotelBookingFailed",
+        "source": "reservationSystem"
+      }
+    ],
+    "functions": [
+      {
+        "name": "callFlightReservationMicroservice",
+        "operation": "file://reservations.org/flight.json#makeReservation"
+      },
+      {
+        "name": "callFlightReservationUndoMicroservice",
+        "operation": "file://reservations.org/flight.json#undoReservation"
+      },
+      {
+        "name": "callHotelReservationMicroservice",
+        "operation": "file://reservations.org/hotel.json#makeReservation"
+      },
+      {
+        "name": "callAutoReservationMicroservice",
+        "operation": "file://reservations.org/auto.json#makeReservation"
+      },
+      {
+        "name": "reportErrors",
+        "operation": "file://errors.org#log.json"
+      }
+    ],
+    "states": [
+      {
+        "name": "BookFlight",
+        "start": true,
+        "enterAction": {
+          "type": "InvokeFunction",
+          "functionName": "callFlightReservationMicroservice",
+          "arguments": {
+            "flight": "${ .flightDetails }"
+          }
+        },
+        "transitions": [
+          {
+            "nextState": "BookAutoAndHotel",
+            "eventGroups": [
+              {
+                "events": [ "flightBookedEvent" ],
+                "resultHandler": "${ .bookedFlight += ($value | .data) }"
+              }
+            ]
+          },
+          {
+            "nextState": "ReportError",
+            "eventGroups": [
+              {
+                "events": [ "flightBookingFailedEvent" ],
+                "resultHandler": "${ .error += ($value | .data) }"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "BookAutoAndHotel",
+        "enterAction": {
+          "type": "parallel",
+          "completionType": "and",
+          "actions": [
+            {
+              "type": "InvokeFunction",
+              "functionName": "callHotelReservationMicroservice",
+              "arguments": {
+                "hotel": "${ .hotelDetails }",
+                "flight": "${ .bookedFlight }"
+              }
+            },
+            {
+              "type": "InvokeFunction",
+              "functionName": "callAutoReservationMicroservice",
+              "arguments": {
+                "auto": "${ .autoDetails }",
+                "flight": "${ .bookedFlight }"
+              }
+            }
+          ]
+        },
+        "transitions": [
+          {
+            "nextState": "Done",
+            "eventGroups": [
+              {
+                "events": [ "hotelBookedEvent" ],
+                "resultHandler": "${ .bookedHotel += ($value | .data) }"
+              },
+              {
+                "events": [ "autoBookedEvent" ],
+                "resultHandler": "${ .bookedAuto += ($value | .data) }"
+              }
+            ]
+          },
+          {
+            "nextState": "UndoFlightReservation",
+            "eventGroups": [
+              {
+                "events": [ "hotelBookingFailedEvent", "autoBookingFailedEvent" ],
+                "resultHandler": "${ .error += ($value | .data) }"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "UndoFlightReservation",
+        "enterAction": {
+          "type": "InvokeFunction",
+          "functionName": "callFlightReservationUndoMicroservice",
+          "arguments": {
+            "flight": "${ .bookedFlight }"
+          }
+        },
+        "transitions": [
+          {
+            "nextState": "ReportError"
+          }
+        ]
+      },
+      {
+        "name": "ReportError",
+        "enterAction": {
+          "type": "InvokeFunction",
+          "functionName": "reportErrors",
+          "arguments": {
+            "error": "${ .error }"
+          }
+        },
+        "transitions": [
+          {
+            "nextState": "Done"
+          }
+        ]
+      },
+      {
+        "name": "Done"
+      }
+    ]
+  }
+}

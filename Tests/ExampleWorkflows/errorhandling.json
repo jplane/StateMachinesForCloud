@@ -21,7 +21,7 @@
         },
         "errorHandlers": [
           {
-            "resultHandler": "${ .error += ($rhs | .Message) }"
+            "resultHandler": "${ .error += ($value | .Message) }"
           }
         ]
       },

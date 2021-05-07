@@ -31,7 +31,7 @@
             "eventGroups": [
               {
                 "events": [ "VetAppointmentInfo" ],
-                "resultHandler": "${ .appointmentInfo += ($rhs | .Data) }"
+                "resultHandler": "${ .appointmentInfo += ($value | .Data) }"
               }
             ]
           },
