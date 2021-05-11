@@ -26,7 +26,7 @@ namespace SM4C.Engine.Durable.TestApp
 
         [FunctionName(nameof(StartStateMachine))]
         public async Task<IActionResult> StartStateMachine(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "statemachine/{instanceId}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "statemachine/{instanceId}")] HttpRequest req,
             [DurableClient] IDurableClient client,
             string instanceId,
             ILogger log)
@@ -62,7 +62,7 @@ namespace SM4C.Engine.Durable.TestApp
 
         [FunctionName(nameof(RaiseEvent))]
         public async Task<IActionResult> RaiseEvent(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "statemachine/{instanceId}/event")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "statemachine/{instanceId}/event")] HttpRequest req,
             [DurableClient] IDurableClient client,
             string instanceId,
             ILogger log)
