@@ -62,7 +62,7 @@ namespace SM4C.Engine.Durable.TestApp
 
         [FunctionName(nameof(GetInstanceStatus))]
         public async Task<IActionResult> GetInstanceStatus(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "statemachine/{instanceId}")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "statemachine/{instanceId?}")] HttpRequest req,
             [DurableClient] IDurableClient client,
             string instanceId,
             ILogger log)
