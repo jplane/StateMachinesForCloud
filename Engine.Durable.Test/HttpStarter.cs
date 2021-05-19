@@ -60,6 +60,31 @@ namespace SM4C.Engine.Durable.TestApp
             return client.CreateCheckStatusResponse(req, instanceId);
         }
 
+        [FunctionName(nameof(GetInstanceStatus))]
+        public async Task<IActionResult> GetInstanceStatus(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "statemachine/{instanceId}")] HttpRequest req,
+            [DurableClient] IDurableClient client,
+            string instanceId,
+            ILogger log)
+        {
+            if (string.IsNullOrWhiteSpace(instanceId))
+            {
+                var statuses = await client.GetStatusAsync();   // TODO: fix this
+
+                log.LogInformation($"Getting status for all workflows.");
+
+                return new ObjectResult(statuses);
+            }
+            else
+            {
+                var status = await client.GetStatusAsync(instanceId);
+
+                log.LogInformation($"Getting status for workflow with ID = '{instanceId}.");
+
+                return new ObjectResult(status);
+            }
+        }
+
         [FunctionName(nameof(RaiseEvent))]
         public async Task<IActionResult> RaiseEvent(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "statemachine/{instanceId}/event")] HttpRequest req,
